@@ -31,7 +31,7 @@ const Login = ()=> {
         console.log(input);
         try {
             setLoading(true);
-            const res=await axios.post('http://localhost:8080/api/v1/user/login',input,{
+            const res=await axios.post('https://photogram-f8if.onrender.com/api/v1/user/login',input,{
                 headers:{
                     'Content-Type':'application/json'
                 },
