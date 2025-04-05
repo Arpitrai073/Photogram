@@ -5,15 +5,18 @@ import EditProfile from './components/EditProfile'
 import Home from './components/ui/Home'
 import Login from './components/ui/Login'
 import MainLayout from './components/ui/MainLayout'
-import Profile from './components/ui/profile'
-import Signup from './components/ui/signup'
+//import Profile from './components/ui/profile'
+//import Signup from './components/ui/signup'
 import {  createBrowserRouter,RouterProvider } from 'react-router-dom'
 import{io} from "socket.io-client"
 import { useEffect } from 'react'
 import { setSocket } from './redux/socketSlice'
-import { setOnlineUsers } from './redux/chatSlice'
+//import { setOnlineUsers } from './redux/chatSlice'
 import { setLikeNotification } from './redux/rtnSlice'
 import ProtectedRoutes from './components/ProtectedRoutes'
+import Profile from './components/ui/Profile'
+import Signup from './components/ui/Signup'
+import { setOnlineUsers } from './redux/chatSlice'
 const browserRouter = createBrowserRouter([{
   path: '/',
   element:<ProtectedRoutes><MainLayout /></ProtectedRoutes>,
