@@ -117,7 +117,7 @@ const ChatPage = () => {
                 }
             </section>
         </div>
-    );
+    );console.log("Request body:", req.body);
 }
 
 export default ChatPage;
