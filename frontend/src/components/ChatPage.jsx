@@ -7,13 +7,15 @@ import { Button } from './ui/button';
 import { MessageCircleCode, ArrowLeft } from 'lucide-react';
 import Messages from './Messages';
 import axios from 'axios';
-import { setMessages } from '@/redux/chatSlice';
+import { addMessage } from '@/redux/chatSlice';
+
 
 const ChatPage = () => {
     const [textMessage, setTextMessage] = useState("");
     const { user, suggestedUsers, selectedUser } = useSelector(store => store.auth);
-    const { onlineUsers, messages } = useSelector(store => store.chat);
+    const { onlineUsers } = useSelector(store => store.chat);
     const dispatch = useDispatch();
+
 
     const sendMessageHandler = async (receiverId) => {
         try {
@@ -22,7 +24,7 @@ const ChatPage = () => {
                 withCredentials: true
             });
             if (res.data.success) {
-                dispatch(setMessages([...messages, res.data.newMessage]));
+                dispatch(addMessage({ userId: receiverId, message: res.data.newMessage }));
                 setTextMessage("");
             }
         } catch (error) {
