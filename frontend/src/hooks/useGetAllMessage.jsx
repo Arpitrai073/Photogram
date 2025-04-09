@@ -11,7 +11,7 @@ const useGetAllMessage = () => {
         const fetchAllMessage = async () => {
             if (!selectedUser?._id) return;
             try {
-                const res = await axios.get(`https://photogram-f8if.onrender.com/api/v1/message/all/${selectedUser._id}`, {
+                const res = await axios.get(`https://photogram-f8if.onrender.com/api/v1/message/get/${selectedUser._id}`, {
                     withCredentials: true
                 });
                 if (res.data.success) {
