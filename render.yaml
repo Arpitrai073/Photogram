@@ -3,7 +3,7 @@ services:
     name: photogram-backend
     env: node
     plan: free
-    buildCommand: npm install && npm install --prefix frontend && npm run build --prefix frontend
+    buildCommand: npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -20,4 +20,3 @@ services:
         sync: false
       - key: URL
         value: https://photogram-f8if.onrender.com
-    staticPublishPath: ./frontend/dist
