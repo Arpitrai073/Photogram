@@ -109,14 +109,32 @@ export const logout = async (req, res) => {
 export const getPofile = async (req, res) => {
     try{
         const userId=req.params.id;
-         let user=await
-         User.findById(userId).populate({path:'posts',createdAt:-1}).populate('bookmarks');
-         return res.status(200).json({user,
-            success:true});
+        let user = await User.findById(userId)
+            .populate({
+                path: 'posts',
+                populate: {
+                    path: 'author',
+                    select: 'username profilePicture'
+                },
+                options: { sort: { createdAt: -1 } }
+            })
+            .populate({
+                path: 'bookmarks',
+                populate: {
+                    path: 'author',
+                    select: 'username profilePicture'
+                }
+            });
+        
+        return res.status(200).json({
+            user,
+            success: true
+        });
     }
     catch(err){
-        return res.status(500).json({message:err.message,
-            success:false
+        return res.status(500).json({
+            message: err.message,
+            success: false
         });
     }
 };

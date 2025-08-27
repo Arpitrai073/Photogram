@@ -7,7 +7,7 @@ function MainLayout() {
   return (
     <div>
         <LeftSidebar/>
-        <div>
+        <div className="lg:ml-[16%]">
             <Outlet/>
         </div>
     </div>

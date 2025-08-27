@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(urlencoded({extended:true}));
 const corsOptions={
-    origin:process.env.URL, 
+    origin: [process.env.URL, "http://localhost:5173", "http://localhost:3000"], 
     credentials:true,
    
 };
@@ -36,11 +36,11 @@ app.use("/api/v1/user",userRouter);
 app.use("/api/v1/post",postRoute);
 app.use("/api/v1/message",messageRoute);
 
-app.use(express.static(path.join(__dirname,"/frontend/dist")));
+// app.use(express.static(path.join(__dirname,"/frontend/dist")));
 
-app.get("*",(req,res)=>{
-    res.sendFile(path.resolve(__dirname,"frontend","dist","index.html"))
-})
+// app.get("*",(req,res)=>{
+//     res.sendFile(path.resolve(__dirname,"frontend","dist","index.html"))
+// })
 
 server.listen(PORT,()=>{
     connectDB();

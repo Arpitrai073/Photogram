@@ -1,22 +1,49 @@
-import { addMessage } from "@/redux/chatSlice";
+import { setMessages } from "@/redux/chatSlice";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import socketService from "@/services/socketService";
 
 const useGetRTM = () => {
     const dispatch = useDispatch();
-    const { socket } = useSelector(store => store.socketio);
-    const { user } = useSelector(store => store.auth);
+    const { messages } = useSelector(store => store.chat);
+    const { selectedUser } = useSelector(store => store.auth);
 
     useEffect(() => {
-        socket?.on('newMessage', (newMessage) => {
-            const otherUserId = newMessage.senderId === user._id ? newMessage.receiverId : newMessage.senderId;
-            dispatch(addMessage({ userId: otherUserId, message: newMessage }));
-        });
+        const socket = socketService.getSocket();
+        if (!socket) return;
+
+        const handleNewMessage = (newMessage) => {
+            try {
+                // Ensure we have valid data
+                if (!newMessage || !newMessage.senderId || !newMessage.receiverId) {
+                    console.warn('Invalid message received:', newMessage);
+                    return;
+                }
+
+                const userId = newMessage.senderId === selectedUser?._id ? newMessage.senderId : newMessage.receiverId;
+
+                // Get current messages for this user
+                const currentMessages = messages[userId] || [];
+
+                // Create a new messages object with the updated conversation
+                const updatedMessages = {
+                    ...messages,
+                    [userId]: [...currentMessages, newMessage]
+                };
+
+                // Update the entire messages state for this user
+                dispatch(setMessages({ userId, messages: updatedMessages[userId] }));
+            } catch (error) {
+                console.error('Error handling new message:', error);
+            }
+        };
+
+        socket.on("newMessage", handleNewMessage);
 
         return () => {
-            socket?.off('newMessage');
+            socket.off("newMessage", handleNewMessage);
         };
-    }, [socket, dispatch, user]);
+    }, [messages, dispatch, selectedUser]);
 };
 
 export default useGetRTM;

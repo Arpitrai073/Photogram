@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import store from '@/redux/store';
+import { createApiUrl, API_ENDPOINTS } from '@/config/api';
 const Signup = ()=> {
     const [input,setInput]=useState({
         username:'',
@@ -27,7 +28,7 @@ const Signup = ()=> {
         console.log(input);
         try {
             setLoading(true);
-            const res=await axios.post('https://photogram-f8if.onrender.com/api/v1/user/register',input,{
+            const res=await axios.post(createApiUrl(API_ENDPOINTS.REGISTER),input,{
                 headers:{
                     'Content-Type':'application/json'
                 },

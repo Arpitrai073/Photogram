@@ -10,7 +10,7 @@ const messageSchema = new mongoose.Schema({
     },
     message:{
         type:String,
-        required:true
+       // required:true
     }
 });
 export const Message= mongoose.model('Message', messageSchema);

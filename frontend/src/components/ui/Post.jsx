@@ -7,6 +7,7 @@ import {
   MessageCircleCode,
   MoreHorizontal,
   Send,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "./button";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
@@ -18,6 +19,7 @@ import Posts from "./Posts";
 import axios from "axios";
 import { setPosts, setSelectedPost } from "@/redux/postSlice";
 import { Badge } from "./badge";
+import { createApiUrl, API_ENDPOINTS } from "@/config/api";
 
 const Post = ({ post }) => {
   const [text, setText] = useState("");
@@ -27,6 +29,11 @@ const Post = ({ post }) => {
   const [liked, setLiked] = useState(post.likes.includes(user?._id) || false);
   const [postLike, setPostLike] = useState(post.likes.length);
   const [comment, setComment] = useState(post.comments);
+  const [hasVoted, setHasVoted] = useState(
+    post.postType === 'poll' && post.pollOptions?.some(option => 
+      option.votes?.includes(user?._id)
+    )
+  );
   const dispatch = useDispatch();
 
   const changeEventHandler = (e) => {
@@ -41,7 +48,7 @@ const Post = ({ post }) => {
   const likeOrDislikeHandler = async () => {
       try {
           const action = liked ? 'dislike' : 'like';
-          const res = await axios.get(`https://photogram-f8if.onrender.com/api/v1/post/${post._id}/${action}`, { withCredentials: true });
+          const res = await axios.get(createApiUrl(API_ENDPOINTS.POST_ACTION(post._id, action)), { withCredentials: true });
           console.log(res.data);
           if (res.data.success) {
               const updatedLikes = liked ? postLike - 1 : postLike + 1;
@@ -64,9 +71,8 @@ const Post = ({ post }) => {
   }
 
   const commentHandler = async () => {
-
       try {
-          const res = await axios.post(`https://photogram-f8if.onrender.com/api/v1/post/${post._id}/comment`, { text }, {
+          const res = await axios.post(createApiUrl(API_ENDPOINTS.POST_COMMENT(post._id)), { text }, {
               headers: {
                   'Content-Type': 'application/json'
               },
@@ -92,7 +98,7 @@ const Post = ({ post }) => {
 
   const deletePostHandler = async () => {
       try {
-          const res = await axios.delete(`https://photogram-f8if.onrender.com/api/v1/post/delete/${post?._id}`, { withCredentials: true })
+          const res = await axios.delete(createApiUrl(API_ENDPOINTS.DELETE_POST(post?._id)), { withCredentials: true })
           if (res.data.success) {
               const updatedPostData = posts.filter((postItem) => postItem?._id !== post?._id);
               dispatch(setPosts(updatedPostData));
@@ -106,7 +112,7 @@ const Post = ({ post }) => {
 
   const bookmarkHandler = async () => {
       try {
-          const res = await axios.get(`https://photogram-f8if.onrender.com/api/v1/post/${post?._id}/bookmark`, {withCredentials:true});
+          const res = await axios.get(createApiUrl(API_ENDPOINTS.BOOKMARK_POST(post?._id)), {withCredentials:true});
           if(res.data.success){
               toast.success(res.data.message);
           }
@@ -114,6 +120,47 @@ const Post = ({ post }) => {
           console.log(error);
       }
   }
+
+  const handlePollVote = async (optionIndex) => {
+    if (hasVoted) return;
+
+    try {
+      const res = await axios.post(createApiUrl(API_ENDPOINTS.VOTE_POLL), {
+        postId: post._id,
+        optionIndex
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
+      });
+
+      if (res.data.success) {
+        setHasVoted(true);
+        // Update the post in Redux store
+        const updatedPostData = posts.map(p =>
+          p._id === post._id ? res.data.post : p
+        );
+        dispatch(setPosts(updatedPostData));
+        toast.success('Vote recorded!');
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response?.data?.message || 'Failed to vote');
+    }
+  };
+
+  const getTotalVotes = () => {
+    if (!post.pollOptions) return 0;
+    return post.pollOptions.reduce((sum, option) => sum + (option.votes?.length || 0), 0);
+  };
+
+  const getPercentage = (votes) => {
+    const total = getTotalVotes();
+    if (total === 0) return 0;
+    return Math.round((votes / total) * 100);
+  };
+
   return (
       <div className='my-8 w-full max-w-sm mx-auto'>
           <div className='flex items-center justify-between'>
@@ -125,6 +172,7 @@ const Post = ({ post }) => {
                   <div className='flex items-center gap-3'>
                       <h1>{post.author?.username}</h1>
                      {user?._id === post.author._id &&  <Badge variant="secondary">Author</Badge>}
+                     {post.postType === 'poll' && <Badge variant="outline"><BarChart3 className="w-3 h-3 mr-1" />Poll</Badge>}
                   </div>
               </div>
               <Dialog>
@@ -143,11 +191,79 @@ const Post = ({ post }) => {
                   </DialogContent>
               </Dialog>
           </div>
-          <img
-              className='rounded-sm my-2 w-full aspect-square object-cover'
-              src={post.image}
-              alt="post_img"
-          />
+
+          {/* Post Content */}
+          {post.postType === 'poll' ? (
+            // Poll Content
+            <div className="border border-gray-200 rounded-lg p-4 my-2">
+              <h2 className="text-lg font-medium mb-4">{post.pollQuestion}</h2>
+              <div className="space-y-3">
+                {post.pollOptions?.map((option, index) => {
+                  const votes = option.votes?.length || 0;
+                  const percentage = getPercentage(votes);
+                  const isVoted = option.votes?.includes(user?._id);
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`relative border-2 rounded-lg p-3 cursor-pointer transition-all ${
+                        isVoted 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : hasVoted 
+                            ? 'border-gray-200' 
+                            : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handlePollVote(index)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{option.text}</span>
+                        {hasVoted && (
+                          <span className="text-sm font-semibold text-blue-600">
+                            {percentage}%
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      {hasVoted && (
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Vote Count */}
+                      {hasVoted && (
+                        <div className="flex items-center mt-2 text-sm text-gray-500">
+                          <span>{votes} votes</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-500 border-t pt-3 mt-4">
+                <div className="flex items-center">
+                  <BarChart3 className="w-4 h-4 mr-1" />
+                  {getTotalVotes()} total votes
+                </div>
+                <div>
+                  {hasVoted ? 'You voted' : 'Tap to vote'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Image Content
+            <img
+                className='rounded-sm my-2 w-full aspect-square object-cover'
+                src={post.image}
+                alt="post_img"
+            />
+          )}
 
           <div className='flex items-center justify-between my-2'>
               <div className='flex items-center gap-3'>

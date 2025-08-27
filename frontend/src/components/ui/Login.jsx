@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAuthUser } from '@/redux/authSlice';
 import store from '@/redux/store';
+import { createApiUrl, API_ENDPOINTS } from '@/config/api';
 const Login = ()=> {
     const [input,setInput]=useState({
        
@@ -31,7 +32,7 @@ const Login = ()=> {
         console.log(input);
         try {
             setLoading(true);
-            const res=await axios.post('https://photogram-f8if.onrender.com/api/v1/user/login',input,{
+            const res=await axios.post(createApiUrl(API_ENDPOINTS.LOGIN),input,{
                 headers:{
                     'Content-Type':'application/json'
                 },

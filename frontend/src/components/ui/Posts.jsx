@@ -7,7 +7,7 @@ const Posts = () => {
   const { user } = useSelector((store) => store.auth);
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pt-12">
+    <div className="w-full max-w-3xl mx-auto px-4 pt-12 pb-20 lg:pb-0">
       {/* ✅ Fixed "Photogram" Title (Hidden on Large Screens) */}
       <div className="fixed top-0 left-0 w-full bg-white shadow-md py-3 text-center text-lg font-bold lg:hidden z-10"style={{ fontFamily: '"Grand Hotel", cursive' }}>
         Photogram

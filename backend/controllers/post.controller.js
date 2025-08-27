@@ -4,34 +4,142 @@ import cloudinary from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import { Comment } from "../models/comment.model.js";
 import { getReceiverSocketId,io } from "../socket/socket.js";
+
 export const addNewPost=async(req,res)=>{
     try {
-        const {caption}=req.body;
-        const image=req.file
+        const {caption, postType, pollQuestion, pollOptions}=req.body;
+        const image=req.file;
         const authorId=req.id;
-        if (!image) {
-            return res.status(400).json({ message: "Please provide an image", success: false });
+
+        console.log('Received data:', { caption, postType, pollQuestion, pollOptions, hasImage: !!image });
+
+        // Validate post type
+        if (!postType || !['image', 'poll'].includes(postType)) {
+            return res.status(400).json({ 
+                message: "Invalid post type. Must be 'image' or 'poll'", 
+                success: false 
+            });
         }
-         const optimizedImage = await sharp(image.buffer).resize({ width: 800, height: 800,fit:'inside' }).toFormat('jpeg',{quality:80}).toBuffer();
-        const fileUri=`data:image/jpeg;base64,${optimizedImage.toString('base64')}`;
-        const cloudResponse=await cloudinary.uploader.upload(fileUri);
-        const post=await Post.create({
+
+        let postData = {
             caption,
-            image:cloudResponse.secure_url,
-            author:authorId
-        });
-        const user=await User.findById(authorId);
-        if (user)
-        {
+            postType,
+            author: authorId
+        };
+
+        // Handle image posts
+        if (postType === 'image') {
+            if (!image) {
+                return res.status(400).json({ 
+                    message: "Please provide an image for image posts", 
+                    success: false 
+                });
+            }
+            
+            const optimizedImage = await sharp(image.buffer)
+                .resize({ width: 800, height: 800, fit: 'inside' })
+                .toFormat('jpeg', { quality: 80 })
+                .toBuffer();
+            
+            const fileUri = `data:image/jpeg;base64,${optimizedImage.toString('base64')}`;
+            const cloudResponse = await cloudinary.uploader.upload(fileUri);
+            postData.image = cloudResponse.secure_url;
+        }
+
+        // Handle poll posts
+        if (postType === 'poll') {
+            console.log('Processing poll post with:', { pollQuestion, pollOptions, type: typeof pollOptions });
+            
+            if (!pollQuestion) {
+                return res.status(400).json({ 
+                    message: "Poll question is required", 
+                    success: false 
+                });
+            }
+
+            if (!pollOptions) {
+                return res.status(400).json({ 
+                    message: "Poll options are required", 
+                    success: false 
+                });
+            }
+
+            // Parse pollOptions if it's a string (from FormData)
+            let parsedPollOptions = pollOptions;
+            if (typeof pollOptions === 'string') {
+                try {
+                    parsedPollOptions = JSON.parse(pollOptions);
+                    console.log('Parsed poll options:', parsedPollOptions);
+                } catch (error) {
+                    console.log('Error parsing poll options:', error);
+                    return res.status(400).json({ 
+                        message: "Invalid poll options format", 
+                        success: false 
+                    });
+                }
+            }
+
+            // Now validate the parsed options
+            if (!Array.isArray(parsedPollOptions) || parsedPollOptions.length < 2) {
+                return res.status(400).json({ 
+                    message: "Poll must have at least 2 options", 
+                    success: false 
+                });
+            }
+
+            // Validate poll options count
+            if (parsedPollOptions.length > 4) {
+                return res.status(400).json({ 
+                    message: "Poll cannot have more than 4 options", 
+                    success: false 
+                });
+            }
+
+            // Check if all options have text
+            const validOptions = parsedPollOptions.filter(option => 
+                option && typeof option === 'string' && option.trim().length > 0
+            );
+
+            console.log('Valid options:', validOptions);
+
+            if (validOptions.length < 2) {
+                return res.status(400).json({ 
+                    message: "All poll options must have text", 
+                    success: false 
+                });
+            }
+
+            postData.pollQuestion = pollQuestion;
+            postData.pollOptions = validOptions.map(option => ({
+                text: option.trim(),
+                votes: []
+            }));
+        }
+
+        console.log('Final post data:', postData);
+
+        const post = await Post.create(postData);
+        
+        const user = await User.findById(authorId);
+        if (user) {
             user.posts.push(post._id);
             await user.save();
         }
 
-        await post.populate({path:'author',select:'password'});
-        return res.status(200).json({message:'Post created',post,success:true});
+        await post.populate({path:'author', select:'-password'});
+        
+        return res.status(200).json({
+            message: `${postType === 'poll' ? 'Poll' : 'Post'} created successfully`,
+            post,
+            success: true
+        });
 
     } catch (error) {
-        console.log(error);
+        console.log('Error in addNewPost:', error);
+        return res.status(500).json({
+            message: "Internal server error",
+            success: false
+        });
     }
 }
 export const getAllPost = async (req, res) => {
@@ -244,3 +352,70 @@ export const deletePost = async (req,res) => {
             
         }    
     }
+
+export const votePoll = async (req, res) => {
+    try {
+        const { postId, optionIndex } = req.body;
+        const userId = req.id;
+
+        if (optionIndex === undefined || optionIndex < 0) {
+            return res.status(400).json({
+                message: "Valid option index is required",
+                success: false
+            });
+        }
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({
+                message: "Post not found",
+                success: false
+            });
+        }
+
+        if (post.postType !== 'poll') {
+            return res.status(400).json({
+                message: "This post is not a poll",
+                success: false
+            });
+        }
+
+        if (optionIndex >= post.pollOptions.length) {
+            return res.status(400).json({
+                message: "Invalid option index",
+                success: false
+            });
+        }
+
+        // Check if user has already voted
+        const hasVoted = post.pollOptions.some(option => 
+            option.votes.includes(userId)
+        );
+
+        if (hasVoted) {
+            return res.status(400).json({
+                message: "You have already voted on this poll",
+                success: false
+            });
+        }
+
+        // Add vote to the selected option
+        post.pollOptions[optionIndex].votes.push(userId);
+        await post.save();
+
+        await post.populate({path:'author', select:'-password'});
+
+        return res.status(200).json({
+            message: "Vote recorded successfully",
+            post,
+            success: true
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Internal server error",
+            success: false
+        });
+    }
+};

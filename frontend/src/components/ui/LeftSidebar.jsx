@@ -23,6 +23,8 @@ import {
 } from "./popover";
 import { Button } from "./button";
 import { clearLikeNotifications } from "@/redux/rtnSlice";
+import { createApiUrl, API_ENDPOINTS } from "@/config/api";
+import ThemeToggle from "./ThemeToggle";
 
 const LeftSidebar = () => {
   const navigate = useNavigate();
@@ -44,7 +46,7 @@ const LeftSidebar = () => {
   const logoutHandler = async () => {
     try {
       const res = await axios.get(
-        "https://photogram-f8if.onrender.com/api/v1/user/logout",
+        createApiUrl(API_ENDPOINTS.LOGOUT),
         { withCredentials: true }
       );
       if (res.data.success) {
@@ -154,18 +156,26 @@ const LeftSidebar = () => {
   return (
     <>
       {/* ✅ Desktop Sidebar (Visible on lg+) */}
-      <div className="hidden lg:flex flex-col fixed top-0 left-0 px-4 border-r border-gray-300 w-[16%] h-screen bg-white">
-        <h1 className="my-8 pl-3 font-bold text-xl "style={{ fontFamily: '"Grand Hotel", cursive' }}>Photogram</h1>
+      <div className="hidden lg:flex flex-col fixed top-0 left-0 px-4 border-r border-gray-300 w-[16%] h-screen bg-white dark:bg-gray-900 dark:border-gray-700">
+        <h1 className="my-8 pl-3 font-bold text-xl dark:text-white" style={{ fontFamily: '"Grand Hotel", cursive' }}>Photogram</h1>
         <div>
           {fullSidebarItems.map((item, index) => renderItem(item, index))}
+        </div>
+        
+        {/* Theme Toggle at bottom */}
+        <div className="mt-auto mb-6">
+          <ThemeToggle />
         </div>
       </div>
 
       {/* ✅ Bottom Navbar for Mobile (Visible on <lg) */}
-      <div className="lg:hidden fixed bottom-0 w-full bg-white shadow-md border-t flex justify-around py-2 z-50">
+      <div className="lg:hidden fixed bottom-0 w-full bg-white dark:bg-gray-900 shadow-md border-t border-gray-300 dark:border-gray-700 flex justify-around py-2 z-50">
         {mobileSidebarItems.map((item, index) =>
           renderItem(item, index, true)
         )}
+        <div className="flex items-center">
+          <ThemeToggle />
+        </div>
       </div>
 
       <CreatePost open={open} setOpen={setOpen} />
