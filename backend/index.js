@@ -36,11 +36,14 @@ app.use("/api/v1/user",userRouter);
 app.use("/api/v1/post",postRoute);
 app.use("/api/v1/message",messageRoute);
 
-// app.use(express.static(path.join(__dirname,"/frontend/dist")));
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "frontend", "dist")));
 
-// app.get("*",(req,res)=>{
-//     res.sendFile(path.resolve(__dirname,"frontend","dist","index.html"))
-// })
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+});
 
 server.listen(PORT,()=>{
     connectDB();

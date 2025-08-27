@@ -1,17 +1,18 @@
 {
-  "name": "backend",
+  "name": "photogram-fullstack",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "backend/index.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon backend/index.js",
-    "build":"npm install && npm install --prefix frontend && npm run build --prefix frontend",
-    "start": "nodemon backend/index.js"
+    "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "node backend/index.js",
+    "postinstall": "npm install --prefix frontend"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["instagram", "clone", "fullstack", "react", "nodejs"],
+  "author": "Arpit Rai",
   "license": "ISC",
-  "description": "",
+  "description": "A full-stack Instagram clone with modern features",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.6.0",
@@ -26,5 +27,9 @@
     "nodemon": "^3.1.9",
     "sharp": "^0.33.5",
     "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
